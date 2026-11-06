@@ -118,6 +118,12 @@ public static class MpSettingsUI
             _ => "Fast: Context only (recommended)."
         }, tooltip: "Desync detection stays enabled in every mode. Fast records event context without call stacks. Slow captures a managed stack for each eligible event and can significantly increase CPU and memory usage.");
 
+        listing.CheckboxLabeled(
+            "Experimental map-state fingerprints (both players)",
+            ref settings.enableStateFingerprints,
+            "Every 600 multiplayer ticks compare spawned map objects (ID, definition, position, stack and hit points). " +
+            "Enable on every peer; experimental, with extra CPU load in very large colonies.");
+
         if (Prefs.DevMode)
         {
             listing.CheckboxLabeled("Show debug info", ref settings.showDevInfo);

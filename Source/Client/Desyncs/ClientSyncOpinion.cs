@@ -18,6 +18,7 @@ namespace Multiplayer.Client
         public List<uint> commandRandomStates = new();
         public List<uint> worldRandomStates = new();
         public List<MapRandomStateData> mapStates = new();
+        public List<StateFingerprintSample> stateFingerprints = new();
 
         // todo Unused for now
         public List<int> pawnCapacityHashes = new();
@@ -56,6 +57,10 @@ namespace Multiplayer.Client
             if (SequenceMismatchInspector.FirstDifference(commandRandomStates, other.commandRandomStates) is { } commandDiff)
                 return $"Random state from commands doesn't match: {commandDiff.Format("first", "second")}";
 
+            var mismatch = StateFingerprintComparison.FirstMismatch(stateFingerprints, other.stateFingerprints);
+            if (mismatch != null)
+                return mismatch;
+
             return null;
         }
 
@@ -85,7 +90,19 @@ namespace Multiplayer.Client
             writer.WritePrefixedInts(desyncStackTraceHashes);
             writer.WriteBool(simulating);
             writer.WriteShort((short)roundMode);
-
+            writer.WriteInt32(stateFingerprints.Count);
+            foreach (var snapshot in stateFingerprints)
+            {
+                writer.WriteInt32(snapshot.tick);
+                writer.WriteInt32(snapshot.mapFingerprints.Count);
+                foreach (var map in snapshot.mapFingerprints)
+                {
+                    writer.WriteInt32(map.mapId);
+                    writer.WriteInt32(map.thingCount);
+                    writer.WriteInt32(map.hashLow);
+                    writer.WriteInt32(map.hashHigh);
+                }
+            }
             return writer.ToArray();
         }
 
@@ -97,7 +114,8 @@ namespace Multiplayer.Client
                 { randomStates = state.randomStates }).ToList(),
             desyncStackTraceHashes = sync.traceHashes,
             simulating = sync.simulating,
-            roundMode = sync.roundMode
+            roundMode = sync.roundMode,
+            stateFingerprints = sync.stateFingerprints ?? new()
         };
 
         public SyncOpinion ToNet() => new()
@@ -109,7 +127,8 @@ namespace Multiplayer.Client
                 { mapId = state.mapId, randomStates = state.randomStates }).ToList(),
             traceHashes = desyncStackTraceHashes,
             simulating = simulating,
-            roundMode = roundMode
+            roundMode = roundMode,
+            stateFingerprints = stateFingerprints
         };
 
         public static ClientSyncOpinion Deserialize(ByteReader data)
@@ -132,6 +151,35 @@ namespace Multiplayer.Client
             var simulating = data.ReadBool();
             var roundMode = data.ReadShort();
 
+            // Old replays have no fingerprint data. Live networking is
+            // versioned with MpVersion.Protocol independently.
+            var snapshots = new List<StateFingerprintSample>();
+            if (data.Left > 0)
+            {
+                int sampleCount = data.ReadInt32();
+                if (sampleCount < 0 || sampleCount > 2048)
+                    throw new ReaderException($"Invalid fingerprint sample count: {sampleCount}");
+
+                for (int i = 0; i < sampleCount; i++)
+                {
+                    int tick = data.ReadInt32();
+                    int snapshotMapCount = data.ReadInt32();
+                    if (snapshotMapCount < 0 || snapshotMapCount > 512)
+                        throw new ReaderException($"Invalid fingerprint map count: {snapshotMapCount}");
+
+                    var snapshotMaps = new List<MapStateFingerprint>(snapshotMapCount);
+                    for (int m = 0; m < snapshotMapCount; m++)
+                        snapshotMaps.Add(new MapStateFingerprint
+                        {
+                            mapId = data.ReadInt32(),
+                            thingCount = data.ReadInt32(),
+                            hashLow = data.ReadInt32(),
+                            hashHigh = data.ReadInt32()
+                        });
+                    snapshots.Add(new StateFingerprintSample { tick = tick, mapFingerprints = snapshotMaps });
+                }
+            }
+
             return new ClientSyncOpinion(startTick)
             {
                 commandRandomStates = cmds,
@@ -139,7 +187,8 @@ namespace Multiplayer.Client
                 mapStates = maps,
                 desyncStackTraceHashes = traceHashes,
                 simulating = simulating,
-                roundMode = (RoundModeEnum)roundMode
+                roundMode = (RoundModeEnum)roundMode,
+                stateFingerprints = snapshots
             };
         }
 

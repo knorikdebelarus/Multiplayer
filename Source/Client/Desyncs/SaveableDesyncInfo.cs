@@ -104,6 +104,11 @@ public class SaveableDesyncInfo(
             if (local.mapStates.All(x => x.mapId != remoteMap.mapId))
                 text.AppendLine($"Map {remoteMap.mapId}: missing on local");
 
+        text.AppendLine($"Map-state fingerprint samples: local={local.stateFingerprints.Count}, remote={remote.stateFingerprints.Count}");
+        text.AppendLine($"Map-state mismatch: {StateFingerprintComparison.FirstMismatch(local.stateFingerprints, remote.stateFingerprints) ?? "none across matching sample ticks"}");
+        text.AppendLine("Map fingerprints cover spawned object ID, definition, position, stack and hit points only.");
+        text.AppendLine("Missing sample ticks are not compared; no automatic culprit-mod attribution.");
+
         text.AppendLine("Trace-hash differences are diagnostic hints; runtime stack differences alone do not prove divergent game state.");
         AppendSequence("Trace hashes", local.desyncStackTraceHashes, remote.desyncStackTraceHashes);
         return text.ToString();

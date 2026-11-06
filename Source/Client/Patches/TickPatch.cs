@@ -5,6 +5,7 @@ using System.Linq;
 using HarmonyLib;
 using LudeonTK;
 using Multiplayer.Client.AsyncTime;
+using Multiplayer.Client.Desyncs;
 using Multiplayer.Common;
 using Multiplayer.Common.Networking.Packet;
 using RimWorld.Planet;
@@ -231,6 +232,15 @@ namespace Multiplayer.Client
 
             ticksToRun -= 1;
             Timer += 1;
+
+            // Once per 600 completed global ticks; never read the whole map
+            // every frame or while a joining client is catching up.
+            if (Multiplayer.settings?.enableStateFingerprints == true &&
+                !Multiplayer.reloading &&
+                !Simulating &&
+                !Multiplayer.IsReplay &&
+                Timer % MapStateFingerprintCollector.SampleIntervalTicks == 0)
+                Multiplayer.game?.sync.TryAddStateFingerprint(Timer);
 
             tickTimer.Stop();
 

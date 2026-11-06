@@ -142,6 +142,7 @@ public class PacketTest
                 new MapRandomState { mapId = 2, randomStates = [333, 444, 555] }
             ],
             traceHashes = [999, 888, 777],
+            stateFingerprints = [],
             simulating = true,
             roundMode = RoundModeEnum.ToNearest
         };
