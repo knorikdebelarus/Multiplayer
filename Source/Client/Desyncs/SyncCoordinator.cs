@@ -190,6 +190,26 @@ namespace Multiplayer.Client
         }
 
         /// <summary>
+        /// Experimental snapshot of map objects (opt-in).
+        /// Diagnostic failures must never abort the simulation tick.
+        /// </summary>
+        public void TryAddStateFingerprint(int tick)
+        {
+            if (!ShouldCollect || Multiplayer.settings?.enableStateFingerprints != true)
+                return;
+
+            try
+            {
+                var snapshot = MapStateFingerprintCollector.Capture(tick);
+                OpinionInBuilding.stateFingerprints.Add(snapshot);
+            }
+            catch (Exception e)
+            {
+                Log.Warning($"Resync map-state fingerprint capture failed at tick {tick}: {e}");
+            }
+        }
+
+        /// <summary>
         /// Logs an item to aid in desync debugging.
         /// </summary>
         /// <param name="info1">Information to be logged</param>
