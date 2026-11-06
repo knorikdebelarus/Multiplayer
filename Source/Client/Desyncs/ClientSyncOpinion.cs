@@ -163,20 +163,20 @@ namespace Multiplayer.Client
                 for (int i = 0; i < sampleCount; i++)
                 {
                     int tick = data.ReadInt32();
-                    int mapCount = data.ReadInt32();
-                    if (mapCount < 0 || mapCount > 512)
-                        throw new ReaderException($"Invalid fingerprint map count: {mapCount}");
+                    int snapshotMapCount = data.ReadInt32();
+                    if (snapshotMapCount < 0 || snapshotMapCount > 512)
+                        throw new ReaderException($"Invalid fingerprint map count: {snapshotMapCount}");
 
-                    var maps = new List<MapStateFingerprint>(mapCount);
-                    for (int m = 0; m < mapCount; m++)
-                        maps.Add(new MapStateFingerprint
+                    var snapshotMaps = new List<MapStateFingerprint>(snapshotMapCount);
+                    for (int m = 0; m < snapshotMapCount; m++)
+                        snapshotMaps.Add(new MapStateFingerprint
                         {
                             mapId = data.ReadInt32(),
                             thingCount = data.ReadInt32(),
                             hashLow = data.ReadInt32(),
                             hashHigh = data.ReadInt32()
                         });
-                    snapshots.Add(new StateFingerprintSample { tick = tick, mapFingerprints = maps });
+                    snapshots.Add(new StateFingerprintSample { tick = tick, mapFingerprints = snapshotMaps });
                 }
             }
 
