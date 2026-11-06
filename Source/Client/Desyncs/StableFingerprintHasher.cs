@@ -12,7 +12,7 @@ internal struct StableFingerprintHasher
     private const ulong Prime = 1099511628211UL;
     private ulong value;
 
-    internal StableFingerprintHasher() => value = Offset;
+    public StableFingerprintHasher() => value = Offset;
     internal ulong Value => value;
 
     internal void AddInt(int input)
