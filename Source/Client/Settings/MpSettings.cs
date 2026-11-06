@@ -31,6 +31,7 @@ namespace Multiplayer.Client
         public Vector2 resolutionForChat;
         public bool showMainMenuAnim = true;
         public DesyncTracingMode desyncTracingMode = DesyncTracingMode.Fast;
+        public bool enableStateFingerprints;
         public bool transparentPlayerCursors = true;
         public List<ColorRGBClient> playerColors = new(DefaultPlayerColors);
 
@@ -66,6 +67,7 @@ namespace Multiplayer.Client
             Scribe_Values.Look(ref includeReplayInDesync, "includeReplayInDesync", VersionChecker.IsContinuousRelease);
             Scribe_Values.Look(ref desyncTracesRadius, "desyncTracesRadius", 40);
             Scribe_Values.Look(ref desyncTracingMode, "desyncTracingMode", DesyncTracingMode.Fast);
+            Scribe_Values.Look(ref enableStateFingerprints, "enableStateFingerprints", false);
             Scribe_Values.Look(ref serverAddress, "serverAddress", "127.0.0.1");
             Scribe_Values.Look(ref showModCompatibility, "showModCompatibility", true);
             Scribe_Values.Look(ref hideTranslationMods, "hideTranslationMods", true);
