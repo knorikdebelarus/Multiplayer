@@ -1,4 +1,5 @@
 using System;
+using Multiplayer.Client.Desyncs;
 using System.Collections.Generic;
 using System.Linq;
 using HarmonyLib;
@@ -35,24 +36,25 @@ namespace Multiplayer.Client
             if (roundMode != other.roundMode)
                 return $"FP round mode doesn't match: {roundMode} != {other.roundMode}";
 
-            if (!mapStates.Select(m => m.mapId).SequenceEqual(other.mapStates.Select(m => m.mapId)))
-                return "Map instances don't match";
+            if (mapStates.Count != other.mapStates.Count)
+                return $"Map instances don't match (counts: first={mapStates.Count}, second={other.mapStates.Count})";
 
-            foreach (var g in
-                     from map1 in mapStates
-                     join map2 in other.mapStates on map1.mapId equals map2.mapId
-                     select (map1, map2))
+            for (int i = 0; i < mapStates.Count; i++)
             {
-                if (!g.map1.randomStates.SequenceEqual(g.map2.randomStates))
-                    return $"Wrong random state on map {g.map1.mapId}";
+                var firstMap = mapStates[i];
+                var secondMap = other.mapStates[i];
+                if (firstMap.mapId != secondMap.mapId)
+                    return $"Map instances don't match at index {i}: first={firstMap.mapId}, second={secondMap.mapId}";
+
+                if (SequenceMismatchInspector.FirstDifference(firstMap.randomStates, secondMap.randomStates) is { } mapDiff)
+                    return $"Wrong random state on map {firstMap.mapId}: {mapDiff.Format("first", "second")}";
             }
 
-            if (!worldRandomStates.SequenceEqual(other.worldRandomStates))
-                return "Wrong random state for the world";
+            if (SequenceMismatchInspector.FirstDifference(worldRandomStates, other.worldRandomStates) is { } worldDiff)
+                return $"Wrong random state for the world: {worldDiff.Format("first", "second")}";
 
-            if (!commandRandomStates.SequenceEqual(other.commandRandomStates))
-                return "Random state from commands doesn't match";
-
+            if (SequenceMismatchInspector.FirstDifference(commandRandomStates, other.commandRandomStates) is { } commandDiff)
+                return $"Random state from commands doesn't match: {commandDiff.Format("first", "second")}";
 
             return null;
         }

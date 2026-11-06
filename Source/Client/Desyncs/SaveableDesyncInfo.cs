@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
@@ -42,6 +43,7 @@ public class SaveableDesyncInfo(
             using var zip = MpZipFile.Open(Path.Combine(Multiplayer.DesyncsDir, desyncFilePath + ".zip"), ZipArchiveMode.Create);
 
             zip.AddEntry("desync_info", GetDesyncDetails());
+            zip.AddEntry("sync_sequences.txt", GetSyncSequenceDetails());
 
             zip.AddEntry("local_traces.txt", GetLocalTraces());
             zip.AddEntry("host_traces.txt", hostInfo?.Traces ?? "No host traces");
@@ -74,6 +76,45 @@ public class SaveableDesyncInfo(
         }
 
         Log.Message($"Desync info writing took {watch.ElapsedMilliseconds}");
+    }
+
+    private string GetSyncSequenceDetails()
+    {
+        var text = new StringBuilder();
+        text.AppendLine("RimWorld Multiplayer Resync - sampled state comparison");
+        text.AppendLine("Sample indices are NOT game tick numbers and do NOT identify a culprit mod.");
+        text.AppendLine($"Sync window start: local={local.startTick}, remote={remote.startTick}");
+        text.AppendLine($"Floating-point round mode: local={local.roundMode}, remote={remote.roundMode}");
+        text.AppendLine($"First sync mismatch: {local.CheckForDesync(remote) ?? "none in current RNG/round-mode checks"}");
+        text.AppendLine($"Local map IDs: {string.Join(", ", local.mapStates.Select(x => x.mapId))}");
+        text.AppendLine($"Remote map IDs: {string.Join(", ", remote.mapStates.Select(x => x.mapId))}");
+
+        AppendSequence("World RNG", local.worldRandomStates, remote.worldRandomStates);
+        AppendSequence("Command RNG", local.commandRandomStates, remote.commandRandomStates);
+
+        foreach (var localMap in local.mapStates)
+        {
+            var remoteMap = remote.mapStates.FirstOrDefault(x => x.mapId == localMap.mapId);
+            if (remoteMap == null)
+                text.AppendLine($"Map {localMap.mapId}: missing on remote");
+            else
+                AppendSequence($"Map {localMap.mapId} RNG", localMap.randomStates, remoteMap.randomStates);
+        }
+        foreach (var remoteMap in remote.mapStates)
+            if (local.mapStates.All(x => x.mapId != remoteMap.mapId))
+                text.AppendLine($"Map {remoteMap.mapId}: missing on local");
+
+        text.AppendLine("Trace-hash differences are diagnostic hints; runtime stack differences alone do not prove divergent game state.");
+        AppendSequence("Trace hashes", local.desyncStackTraceHashes, remote.desyncStackTraceHashes);
+        return text.ToString();
+
+        void AppendSequence<T>(string label, IReadOnlyList<T> first, IReadOnlyList<T> second)
+        {
+            var diff = SequenceMismatchInspector.FirstDifference(first, second);
+            text.AppendLine(diff is { } mismatch
+                ? $"{label}: {mismatch.Format("local", "remote")}"
+                : $"{label}: equal ({first.Count} samples)");
+        }
     }
 
     private string GetLocalTraces()
