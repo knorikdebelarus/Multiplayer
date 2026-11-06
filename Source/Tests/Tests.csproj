@@ -25,6 +25,7 @@
     <ItemGroup>
       <Compile Include="..\Client\Settings\DesyncTracingMode.cs" Link="Client\DesyncTracingMode.cs" />
       <Compile Include="..\Client\Desyncs\DesyncTraceCapture.cs" Link="Client\DesyncTraceCapture.cs" />
+      <Compile Include="..\Client\Desyncs\SequenceMismatchInspector.cs" Link="Client\SequenceMismatchInspector.cs" />
       <Compile Include="..\Client\Util\DeterministicHash.cs" Link="Client\DeterministicHash.cs" />
       <Compile Include="..\Client\Util\HashCodeTranspiler.cs" Link="Client\HashCodeTranspiler.cs" />
       <Compile Include="..\Client\Patches\ViewedMapTracker.cs" Link="Client\ViewedMapTracker.cs" />
