@@ -50,6 +50,7 @@ public record struct SyncOpinion : IPacketBufferable
     public List<int> traceHashes;
     public bool simulating;
     public RoundModeEnum roundMode;
+    public List<StateFingerprintSample> stateFingerprints;
 
     public void Bind(PacketBuffer buf)
     {
@@ -64,6 +65,36 @@ public record struct SyncOpinion : IPacketBufferable
 
         buf.Bind(ref simulating);
         buf.BindEnum(ref roundMode);
+        buf.Bind(ref stateFingerprints, BinderOf.Identity<StateFingerprintSample>(), maxLength: 2048);
+    }
+}
+
+/// <summary>Snapshot of spawned map objects at a global multiplayer tick.</summary>
+public record struct StateFingerprintSample : IPacketBufferable
+{
+    public int tick;
+    public List<MapStateFingerprint> mapFingerprints;
+
+    public void Bind(PacketBuffer buf)
+    {
+        buf.Bind(ref tick);
+        buf.Bind(ref mapFingerprints, BinderOf.Identity<MapStateFingerprint>(), maxLength: 512);
+    }
+}
+
+public record struct MapStateFingerprint : IPacketBufferable
+{
+    public int mapId;
+    public int thingCount;
+    public int hashLow;
+    public int hashHigh;
+
+    public void Bind(PacketBuffer buf)
+    {
+        buf.Bind(ref mapId);
+        buf.Bind(ref thingCount);
+        buf.Bind(ref hashLow);
+        buf.Bind(ref hashHigh);
     }
 }
 
