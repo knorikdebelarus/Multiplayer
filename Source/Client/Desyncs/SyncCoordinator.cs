@@ -31,6 +31,28 @@ namespace Multiplayer.Client
 
         private const int MaxBacklog = 30;
 
+        // Pending opinions must survive join-point/rejoin reloads in the SAME
+        // multiplayer session. Otherwise a divergence immediately before the
+        // reload could go undetected.
+        private static SyncCoordinator previous;
+        private readonly MultiplayerSession session;
+
+        public SyncCoordinator()
+        {
+            session = Multiplayer.session;
+
+            if (Multiplayer.reloading && previous is { } old &&
+                old != this && old.session != null && old.session == session)
+            {
+                knownClientOpinions.AddRange(old.knownClientOpinions);
+                old.knownClientOpinions.Clear();
+                lastValidTick = old.lastValidTick;
+                arbiterWasPlayingOnLastValidTick = old.arbiterWasPlayingOnLastValidTick;
+            }
+
+            previous = this;
+        }
+
         public ClientSyncOpinion FinishLocalOpinion()
         {
             if (!ShouldCollect || currentOpinion == null) return null;
